@@ -1,83 +1,131 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luyện Phát Âm Tiếng Trung</title>
+    <title>Luyện Phát Âm Tiếng Trung Pro</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .hanzi { font-size: 48px; color: #2c3e50; margin: 10px 0; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; margin: 5px; transition: 0.3s; }
-        .btn-speak { background: #3498db; color: white; }
-        .btn-listen { background: #e67e22; color: white; }
-        .result { margin-top: 20px; font-weight: bold; font-size: 1.2em; }
-        .success { color: #27ae60; }
-        .error { color: #e74c3c; }
+        :root { --primary: #2ecc71; --secondary: #3498db; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: var(--bg); padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .progress { font-size: 14px; color: #888; margin-bottom: 10px; }
+        .hanzi { font-size: 64px; margin: 10px 0; color: #2c3e50; font-weight: bold; }
+        .pinyin { font-size: 24px; color: #7f8c8d; margin-bottom: 20px; letter-spacing: 2px; }
+        button { padding: 12px 25px; font-size: 16px; cursor: pointer; border: none; border-radius: 50px; margin: 10px; transition: all 0.3s; font-weight: bold; }
+        .btn-listen { background: var(--secondary); color: white; }
+        .btn-speak { background: var(--primary); color: white; min-width: 150px; }
+        .btn-speak:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .result { margin-top: 25px; min-height: 60px; padding: 15px; border-radius: 10px; }
+        .success { background: #eafaf1; color: #27ae60; border: 1px solid #27ae60; }
+        .error { background: #fdedec; color: #e74c3c; border: 1px solid #e74c3c; }
+        .high-score { color: #f1c40f; font-size: 1.5em; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Luyện Phát Âm</h2>
-    <div class="hanzi" id="targetText">你好</div>
-    <p id="pinyin">nǐ hǎo</p>
+    <div class="progress" id="progressIndicator">Từ 1 / 5</div>
+    <div class="hanzi" id="displayHanzi">你好</div>
+    <div class="pinyin" id="displayPinyin">nǐ hǎo</div>
 
-    <button class="btn-listen" onclick="playSample()">Nghe mẫu</button>
-    <button class="btn-speak" id="startBtn">Bắt đầu nói</button>
+    <button class="btn-listen" onclick="playSample()">🔊 Nghe mẫu</button>
+    <button class="btn-speak" id="startBtn">🎤 Bắt đầu nói</button>
 
-    <div class="result" id="resultArea"></div>
+    <div id="resultArea" class="result" style="display: none;"></div>
 </div>
 
 <script>
-    const targetText = document.getElementById('targetText').innerText;
-    const resultArea = document.getElementById('resultArea');
-    const startBtn = document.getElementById('startBtn');
+    // 1. Kho từ vựng (Tối đa 5 từ)
+    const vocabulary = [
+        { hanzi: "你好", pinyin: "nǐ hǎo" },
+        { hanzi: "谢谢", pinyin: "xiè xie" },
+        { hanzi: "再见", pinyin: "zài jiàn" },
+        { hanzi: "老师", pinyin: "lǎo shī" },
+        { hanzi: "漂亮", pinyin: "piào liang" }
+    ];
 
-    // 1. Phát âm mẫu (Text to Speech)
+    let currentIndex = 0;
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+
+    const startBtn = document.getElementById('startBtn');
+    const resultArea = document.getElementById('resultArea');
+
+    // 2. Cập nhật giao diện
+    function updateWord() {
+        const word = vocabulary[currentIndex];
+        document.getElementById('displayHanzi').innerText = word.hanzi;
+        document.getElementById('displayPinyin').innerText = word.pinyin;
+        document.getElementById('progressIndicator').innerText = `Từ ${currentIndex + 1} / ${vocabulary.length}`;
+        resultArea.style.display = 'none';
+        startBtn.disabled = false;
+        startBtn.innerText = "🎤 Bắt đầu nói";
+    }
+
+    // 3. Phát âm mẫu
     function playSample() {
-        const msg = new SpeechSynthesisUtterance(targetText);
+        const msg = new SpeechSynthesisUtterance(vocabulary[currentIndex].hanzi);
         msg.lang = 'zh-CN';
         window.speechSynthesis.speak(msg);
     }
 
-    // 2. Nhận diện giọng nói (Speech Recognition)
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!Recognition) {
-        alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome!");
-    } else {
-        const recognition = new Recognition();
-        recognition.lang = 'zh-CN';
-        recognition.interimResults = false;
+    // 4. Xử lý nhận diện giọng nói
+    startBtn.onclick = () => {
+        recognition.start();
+        startBtn.innerText = "Listening...";
+        startBtn.disabled = true;
+    };
 
-        startBtn.onclick = () => {
-            recognition.start();
-            resultArea.innerText = "Đang lắng nghe...";
-            startBtn.style.background = "#bdc3c7";
-        };
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        const confidence = event.results[0][0].confidence; // Giá trị từ 0 đến 1
+        const confidencePercent = (confidence * 100).toFixed(0);
+        const target = vocabulary[currentIndex].hanzi;
 
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            const confidence = (event.results[0][0].confidence * 100).toFixed(1);
+        resultArea.style.display = 'block';
+        
+        // Kiểm tra đúng từ và độ chính xác > 90%
+        if (transcript === target && confidence >= 0.90) {
+            resultArea.className = "result success";
+            resultArea.innerHTML = `🌟 <b>Tuyệt vời!</b> (${confidencePercent}%)<br>Đang chuyển từ tiếp theo...`;
             
-            let html = `Bạn đã nói: <span style="color:#3498db">${transcript}</span><br>`;
+            // Tự động chuyển từ sau 2 giây
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < vocabulary.length) {
+                    updateWord();
+                } else {
+                    finishApp();
+                }
+            }, 2000);
             
-            if (transcript === targetText) {
-                html += `<span class="success">Chính xác! (${confidence}%)</span>`;
-            } else {
-                html += `<span class="error">Chưa đúng, thử lại nhé!</span>`;
-            }
-            
-            resultArea.innerHTML = html;
-            startBtn.style.background = "#3498db";
-        };
+        } else {
+            resultArea.className = "result error";
+            let feedback = transcript === target ? 
+                `Gần đúng rồi (${confidencePercent}%)! Hãy phát âm rõ hơn.` : 
+                `Bạn nói: "${transcript}". Thử lại nhé!`;
+            resultArea.innerHTML = feedback;
+            startBtn.disabled = false;
+            startBtn.innerText = "🎤 Thử lại";
+        }
+    };
 
-        recognition.onerror = () => {
-            resultArea.innerText = "Có lỗi xảy ra, vui lòng thử lại.";
-            startBtn.style.background = "#3498db";
-        };
+    function finishApp() {
+        document.querySelector('.container').innerHTML = `
+            <h2 style="color: var(--primary)">Chúc mừng! 🎉</h2>
+            <p>Bạn đã hoàn thành 5 từ vựng xuất sắc.</p>
+            <button onclick="location.reload()" class="btn-listen">Học lại từ đầu</button>
+        `;
     }
+
+    recognition.onerror = () => {
+        startBtn.disabled = false;
+        startBtn.innerText = "🎤 Thử lại";
+    };
+
+    // Khởi tạo lần đầu
+    updateWord();
 </script>
 
 </body>
