@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyện Phát Âm Tiếng Trung</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .hanzi { font-size: 48px; color: #2c3e50; margin: 10px 0; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; margin: 5px; transition: 0.3s; }
+        .btn-speak { background: #3498db; color: white; }
+        .btn-listen { background: #e67e22; color: white; }
+        .result { margin-top: 20px; font-weight: bold; font-size: 1.2em; }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Luyện Phát Âm</h2>
+    <div class="hanzi" id="targetText">你好</div>
+    <p id="pinyin">nǐ hǎo</p>
+
+    <button class="btn-listen" onclick="playSample()">Nghe mẫu</button>
+    <button class="btn-speak" id="startBtn">Bắt đầu nói</button>
+
+    <div class="result" id="resultArea"></div>
+</div>
+
+<script>
+    const targetText = document.getElementById('targetText').innerText;
+    const resultArea = document.getElementById('resultArea');
+    const startBtn = document.getElementById('startBtn');
+
+    // 1. Phát âm mẫu (Text to Speech)
+    function playSample() {
+        const msg = new SpeechSynthesisUtterance(targetText);
+        msg.lang = 'zh-CN';
+        window.speechSynthesis.speak(msg);
+    }
+
+    // 2. Nhận diện giọng nói (Speech Recognition)
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!Recognition) {
+        alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome!");
+    } else {
+        const recognition = new Recognition();
+        recognition.lang = 'zh-CN';
+        recognition.interimResults = false;
+
+        startBtn.onclick = () => {
+            recognition.start();
+            resultArea.innerText = "Đang lắng nghe...";
+            startBtn.style.background = "#bdc3c7";
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const confidence = (event.results[0][0].confidence * 100).toFixed(1);
+            
+            let html = `Bạn đã nói: <span style="color:#3498db">${transcript}</span><br>`;
+            
+            if (transcript === targetText) {
+                html += `<span class="success">Chính xác! (${confidence}%)</span>`;
+            } else {
+                html += `<span class="error">Chưa đúng, thử lại nhé!</span>`;
+            }
+            
+            resultArea.innerHTML = html;
+            startBtn.style.background = "#3498db";
+        };
+
+        recognition.onerror = () => {
+            resultArea.innerText = "Có lỗi xảy ra, vui lòng thử lại.";
+            startBtn.style.background = "#3498db";
+        };
+    }
+</script>
+
+</body>
+</html>
